@@ -1,5 +1,14 @@
-2026/03/16-18:42:51.195 6b40 Reusing MANIFEST C:\Users\user\Desktop\pc\Repositories\brite\chrome-profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/03/16-18:42:51.200 6b40 Recovering log #7
-2026/03/16-18:42:51.201 6b40 Level-0 table #9: started
-2026/03/16-18:42:51.207 6b40 Level-0 table #9: 55234 bytes OK
-2026/03/16-18:42:51.213 6b40 Delete type=0 #7
+2026/03/16-18:48:35.254 77f8 Reusing MANIFEST C:\Users\user\Desktop\pc\Repositories\brite\chrome-profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/03/16-18:48:35.260 77f8 Recovering log #10
+2026/03/16-18:48:35.263 77f8 Reusing old log C:\Users\user\Desktop\pc\Repositories\brite\chrome-profile\Default\Local Storage\leveldb/000010.log 
+2026/03/16-18:49:35.271 7270 Level-0 table #13: started
+2026/03/16-18:49:35.278 7270 Level-0 table #13: 56524 bytes OK
+2026/03/16-18:49:35.280 7270 Delete type=0 #10
+2026/03/16-18:49:35.281 7270 Compacting 4@0 + 0@1 files
+2026/03/16-18:49:35.287 7270 Generated table #14@0: 29 keys, 421082 bytes
+2026/03/16-18:49:35.287 7270 Compacted 4@0 + 0@1 files => 421082 bytes
+2026/03/16-18:49:35.288 7270 compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/03/16-18:49:35.289 7270 Delete type=2 #3
+2026/03/16-18:49:35.289 7270 Delete type=2 #6
+2026/03/16-18:49:35.289 7270 Delete type=2 #9
+2026/03/16-18:49:35.289 7270 Delete type=2 #13

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import nodriver as uc
+from nodriver.core import util as nodriver_util
 
 
 LOGGER = logging.getLogger("timed_clicker")
@@ -279,6 +280,7 @@ async def run_click_plan(plan: ClickPlan, *, dry_run: bool) -> int:
         return 0
     finally:
         if plan.keep_open_after_run:
+            nodriver_util.get_registered_instances().discard(browser)
             LOGGER.info("Leaving browser open because keep_open_after_run=true")
         else:
             LOGGER.info("Stopping browser")
