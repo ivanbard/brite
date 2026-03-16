@@ -1,10 +1,11 @@
 {                                                                                                           
-"run_at": "2026-03-16T18:49:00",                                                                          
+"run_at": "2026-03-16T19:04:00",                                                                          
 "url":                                                                                                    
 "https://www.eventbrite.ca/e/evil-world-presents-bronclair-kay-nive-tickets-1983637251417?aff=eprofsaved",  
 "profile_dir": "./chrome-profile",                                                                        
 "warmup_seconds": 120,                                                                                    
 "selector_timeout_seconds": 20,                                                                           
+"resolve_poll_ms": 25,
 "settle_delay_ms": 250,                                                                                   
 "pre_fire_spin_ms": 250,                                                                                  
 "page_ready_selector": "main",                                                                            
@@ -15,16 +16,30 @@
     {                                                                                                       
     "name": "Checkout",                                                                                   
     "selector": "button[data-testid='conversion-bar-checkout-button']",                                   
-    "post_click_delay_ms": 250                                                                            
+    "timeout_seconds": 20,
+    "poll_ms": 10,
+    "post_click_delay_ms": 0                                                                            
     },
     {                                                                                                       
     "name": "Increase Quantity",                                                                          
     "selector": "button[data-testid='eds-stepper-increase-button']",                                      
-    "post_click_delay_ms": 250                                                                            
+    "timeout_seconds": 60,
+    "poll_ms": 5,
+    "click_retries": 1,
+    "retry_delay_ms": 75,
+    "require_visible": true,
+    "require_enabled": true,
+    "post_click_delay_ms": 0                                                                            
     },                                                                                                      
     {                                                                                                       
     "name": "Confirm Modal",                                                                              
-    "selector": "button[data-testid='eds-modal__primary-button']"                                          
+    "selector": "button[data-testid='eds-modal__primary-button']",
+    "timeout_seconds": 60,
+    "poll_ms": 5,
+    "click_retries": 1,
+    "retry_delay_ms": 75,
+    "require_visible": true,
+    "require_enabled": true
     }                                                                                                       
 ]                                                                                                         
 }

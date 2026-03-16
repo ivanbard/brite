@@ -23,7 +23,13 @@ class ButtonStep:
     name: str
     selector: str
     click_method: str = "click"
+    timeout_seconds: float | None = None
+    poll_ms: int | None = None
+    click_retries: int = 0
+    retry_delay_ms: int = 100
     post_click_delay_ms: int = 0
+    require_visible: bool = False
+    require_enabled: bool = False
 
 
 @dataclass(slots=True)
@@ -33,6 +39,7 @@ class ClickPlan:
     profile_dir: Path
     warmup_seconds: int = 120
     selector_timeout_seconds: float = 10.0
+    resolve_poll_ms: int = 25
     settle_delay_ms: int = 250
     pre_fire_spin_ms: int = 250
     page_ready_selector: str | None = None
@@ -91,6 +98,7 @@ def load_config(path: Path) -> ClickPlan:
         profile_dir=profile_dir,
         warmup_seconds=int(raw.get("warmup_seconds", 120)),
         selector_timeout_seconds=float(raw.get("selector_timeout_seconds", 10.0)),
+        resolve_poll_ms=int(raw.get("resolve_poll_ms", 25)),
         settle_delay_ms=int(raw.get("settle_delay_ms", 250)),
         pre_fire_spin_ms=int(raw.get("pre_fire_spin_ms", 250)),
         page_ready_selector=raw.get("page_ready_selector"),
@@ -119,7 +127,15 @@ def parse_button_step(raw: dict[str, Any]) -> ButtonStep:
         name=raw.get("name") or selector,
         selector=selector,
         click_method=click_method,
+        timeout_seconds=(
+            float(raw["timeout_seconds"]) if raw.get("timeout_seconds") is not None else None
+        ),
+        poll_ms=int(raw["poll_ms"]) if raw.get("poll_ms") is not None else None,
+        click_retries=int(raw.get("click_retries", 0)),
+        retry_delay_ms=int(raw.get("retry_delay_ms", 100)),
         post_click_delay_ms=int(raw.get("post_click_delay_ms", 0)),
+        require_visible=bool(raw.get("require_visible", False)),
+        require_enabled=bool(raw.get("require_enabled", False)),
     )
 
 
@@ -132,10 +148,21 @@ def validate_plan(plan: ClickPlan, *, dry_run: bool) -> None:
         raise ValueError("'warmup_seconds' must be zero or greater.")
     if plan.pre_fire_spin_ms < 0:
         raise ValueError("'pre_fire_spin_ms' must be zero or greater.")
+    if plan.resolve_poll_ms < 1:
+        raise ValueError("'resolve_poll_ms' must be at least 1.")
     if plan.prevalidate_steps < 0:
         raise ValueError("'prevalidate_steps' must be zero or greater.")
     if plan.browser_args is None:
         raise ValueError("'browser_args' must be an array when provided.")
+    for step in plan.buttons:
+        if step.timeout_seconds is not None and step.timeout_seconds <= 0:
+            raise ValueError(f"Step '{step.name}' timeout_seconds must be greater than 0.")
+        if step.poll_ms is not None and step.poll_ms < 1:
+            raise ValueError(f"Step '{step.name}' poll_ms must be at least 1.")
+        if step.click_retries < 0:
+            raise ValueError(f"Step '{step.name}' click_retries must be zero or greater.")
+        if step.retry_delay_ms < 0:
+            raise ValueError(f"Step '{step.name}' retry_delay_ms must be zero or greater.")
 
     now = datetime.now()
     if not dry_run and plan.run_at <= now:
@@ -180,34 +207,102 @@ async def wait_for_fire_time(target: datetime, spin_window_ms: int) -> None:
         await asyncio.sleep(0.001)
 
 
-async def resolve_button(tab: Any, step: ButtonStep, timeout: float) -> Any:
+async def resolve_button(tab: Any, step: ButtonStep, timeout: float, poll_ms: int) -> Any:
     LOGGER.info("Resolving selector for step '%s': %s", step.name, step.selector)
     deadline = time.monotonic() + timeout
 
     while True:
         button = await tab.select(step.selector, timeout=0)
-        if button:
+        if button and await element_matches_state(button, step):
             return button
 
         frame_matches = await tab.select_all(step.selector, timeout=0, include_frames=True)
-        if frame_matches:
-            LOGGER.info("Resolved step '%s' inside a frame", step.name)
-            return frame_matches[0]
+        for frame_match in frame_matches:
+            if await element_matches_state(frame_match, step):
+                LOGGER.info("Resolved step '%s' inside a frame", step.name)
+                return frame_match
 
         if time.monotonic() >= deadline:
             raise TimeoutError(f"Selector not found for step '{step.name}': {step.selector}")
 
-        await tab.sleep(0.25)
+        await tab.sleep(min(poll_ms / 1000, 0.5))
 
 
-async def click_button(tab: Any, step: ButtonStep, timeout: float) -> None:
-    button = await resolve_button(tab, step, timeout)
-    await tab
+async def element_matches_state(element: Any, step: ButtonStep) -> bool:
+    if not step.require_visible and not step.require_enabled:
+        return True
 
-    action = getattr(button, step.click_method)
-    started_at = timestamp_now()
-    LOGGER.info("Clicking step '%s' with %s at %s", step.name, step.click_method, started_at)
-    await action()
+    checks = []
+    if step.require_visible:
+        checks.append(
+            """
+            const style = window.getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            const visible =
+                style &&
+                style.display !== 'none' &&
+                style.visibility !== 'hidden' &&
+                style.opacity !== '0' &&
+                rect.width > 0 &&
+                rect.height > 0;
+            """
+        )
+    else:
+        checks.append("const visible = true;")
+
+    if step.require_enabled:
+        checks.append(
+            """
+            const enabled =
+                !el.disabled &&
+                el.getAttribute('aria-disabled') !== 'true';
+            """
+        )
+    else:
+        checks.append("const enabled = true;")
+
+    js = """
+    (el) => {
+        %s
+        %s
+        return visible && enabled;
+    }
+    """ % (
+        checks[0],
+        checks[1],
+    )
+    return bool(await element.apply(js))
+
+
+async def click_button(tab: Any, step: ButtonStep, timeout: float, poll_ms: int) -> None:
+    step_timeout = step.timeout_seconds or timeout
+    step_poll_ms = step.poll_ms or poll_ms
+
+    for attempt in range(step.click_retries + 1):
+        button = await resolve_button(tab, step, step_timeout, step_poll_ms)
+        action = getattr(button, step.click_method)
+        started_at = timestamp_now()
+        LOGGER.info(
+            "Clicking step '%s' with %s at %s (attempt %d/%d)",
+            step.name,
+            step.click_method,
+            started_at,
+            attempt + 1,
+            step.click_retries + 1,
+        )
+        try:
+            await action()
+            break
+        except Exception:
+            if attempt >= step.click_retries:
+                raise
+            retry_delay_seconds = step.retry_delay_ms / 1000
+            LOGGER.warning(
+                "Click failed for step '%s'; retrying in %.3fs",
+                step.name,
+                retry_delay_seconds,
+            )
+            await asyncio.sleep(retry_delay_seconds)
 
     if step.post_click_delay_ms > 0:
         delay_seconds = step.post_click_delay_ms / 1000
@@ -230,7 +325,12 @@ async def prepare_page(browser: Any, plan: ClickPlan) -> Any:
 
     initial_steps = (plan.buttons or [])[: plan.prevalidate_steps]
     for step in initial_steps:
-        await resolve_button(tab, step, plan.selector_timeout_seconds)
+        await resolve_button(
+            tab,
+            step,
+            plan.selector_timeout_seconds,
+            plan.resolve_poll_ms,
+        )
 
     settle_seconds = plan.settle_delay_ms / 1000
     if settle_seconds > 0:
@@ -274,7 +374,7 @@ async def run_click_plan(plan: ClickPlan, *, dry_run: bool) -> int:
 
         await wait_for_fire_time(plan.run_at, plan.pre_fire_spin_ms)
         for step in plan.buttons or []:
-            await click_button(tab, step, plan.selector_timeout_seconds)
+            await click_button(tab, step, plan.selector_timeout_seconds, plan.resolve_poll_ms)
 
         LOGGER.info("Completed all clicks at %s", timestamp_now())
         return 0

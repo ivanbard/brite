@@ -1,3 +1,5 @@
-2026/03/16-18:46:13.220 b98 Reusing MANIFEST C:\Users\user\Desktop\pc\Repositories\brite\chrome-profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/03/16-18:46:13.226 b98 Recovering log #10
-2026/03/16-18:46:13.229 b98 Reusing old log C:\Users\user\Desktop\pc\Repositories\brite\chrome-profile\Default\Local Storage\leveldb/000010.log 
+2026/03/16-19:01:30.253 7964 Reusing MANIFEST C:\Users\user\Desktop\pc\Repositories\brite\chrome-profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/03/16-19:01:30.259 7964 Recovering log #25
+2026/03/16-19:01:30.260 7964 Level-0 table #28: started
+2026/03/16-19:01:30.266 7964 Level-0 table #28: 55745 bytes OK
+2026/03/16-19:01:30.273 7964 Delete type=0 #25

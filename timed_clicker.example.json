@@ -4,6 +4,7 @@
   "profile_dir": "./chrome-profile",
   "warmup_seconds": 120,
   "selector_timeout_seconds": 10,
+  "resolve_poll_ms": 25,
   "settle_delay_ms": 250,
   "pre_fire_spin_ms": 250,
   "page_ready_selector": "main",
@@ -17,12 +18,22 @@
     {
       "name": "Reserve Item",
       "selector": "button[data-testid='reserve-button']",
+      "timeout_seconds": 20,
+      "poll_ms": 10,
+      "require_visible": true,
+      "require_enabled": true,
       "click_method": "click",
       "post_click_delay_ms": 100
     },
     {
       "name": "Confirm",
       "selector": "button[data-testid='confirm-button']",
+      "timeout_seconds": 30,
+      "poll_ms": 10,
+      "click_retries": 1,
+      "retry_delay_ms": 75,
+      "require_visible": true,
+      "require_enabled": true,
       "click_method": "click",
       "post_click_delay_ms": 0
     }
