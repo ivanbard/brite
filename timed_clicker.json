@@ -1,0 +1,25 @@
+{                                                                                                           
+    "run_at": "2026-03-16T18:30:00",                                                                          
+    "url": "https://www.eventbrite.ca/e/evil-world-presents-bronclair-kay-nive-tickets-1983637251417?aff=eprofsaved",                                                                   
+    "profile_dir": "./chrome-profile",                                                                        
+    "warmup_seconds": 120,                                                                                    
+    "selector_timeout_seconds": 10,                                                                           
+    "settle_delay_ms": 250,                                                                                   
+    "pre_fire_spin_ms": 250,                                                                                  
+    "page_ready_selector": "main",                                                                            
+    "headless": false,                                                                                        
+    "buttons": [                                                                                              
+        {                                                                                                       
+        "name": "Checkout",                                                                                   
+        "selector": "button[data-testid='conversion-bar-checkout-button']"                                    
+        },                                                                                                      
+        {                                                                                                       
+        "name": "Increase Quantity",                                                                          
+        "selector": "button[data-testid='eds-stepper-increase-button']"                                       
+        },                                                                                                      
+        {                                                                                                       
+        "name": "Confirm Modal",                                                                              
+        "selector": "button[data-testid='eds-modal_primary-button']"                                          
+        }                                                                                                       
+    ]                                                                                                         
+}

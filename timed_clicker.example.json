@@ -1,0 +1,29 @@
+{
+  "run_at": "2026-03-16T18:00:00",
+  "url": "https://example.com/checkout",
+  "profile_dir": "./chrome-profile",
+  "warmup_seconds": 120,
+  "selector_timeout_seconds": 10,
+  "settle_delay_ms": 250,
+  "pre_fire_spin_ms": 250,
+  "page_ready_selector": "main",
+  "headless": false,
+  "sandbox": true,
+  "browser_executable_path": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "browser_args": [],
+  "buttons": [
+    {
+      "name": "Reserve Item",
+      "selector": "button[data-testid='reserve-button']",
+      "click_method": "click",
+      "post_click_delay_ms": 100
+    },
+    {
+      "name": "Confirm",
+      "selector": "button[data-testid='confirm-button']",
+      "click_method": "click",
+      "post_click_delay_ms": 0
+    }
+  ]
+}
+
