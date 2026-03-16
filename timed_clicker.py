@@ -35,6 +35,7 @@ class ClickPlan:
     settle_delay_ms: int = 250
     pre_fire_spin_ms: int = 250
     page_ready_selector: str | None = None
+    prevalidate_steps: int = 1
     headless: bool = False
     sandbox: bool = True
     browser_executable_path: str | None = None
@@ -91,6 +92,7 @@ def load_config(path: Path) -> ClickPlan:
         settle_delay_ms=int(raw.get("settle_delay_ms", 250)),
         pre_fire_spin_ms=int(raw.get("pre_fire_spin_ms", 250)),
         page_ready_selector=raw.get("page_ready_selector"),
+        prevalidate_steps=int(raw.get("prevalidate_steps", 1)),
         headless=bool(raw.get("headless", False)),
         sandbox=bool(raw.get("sandbox", True)),
         browser_executable_path=raw.get("browser_executable_path"),
@@ -127,6 +129,8 @@ def validate_plan(plan: ClickPlan, *, dry_run: bool) -> None:
         raise ValueError("'warmup_seconds' must be zero or greater.")
     if plan.pre_fire_spin_ms < 0:
         raise ValueError("'pre_fire_spin_ms' must be zero or greater.")
+    if plan.prevalidate_steps < 0:
+        raise ValueError("'prevalidate_steps' must be zero or greater.")
     if plan.browser_args is None:
         raise ValueError("'browser_args' must be an array when provided.")
 
@@ -209,7 +213,8 @@ async def prepare_page(browser: Any, plan: ClickPlan) -> Any:
         LOGGER.info("Waiting for page_ready_selector: %s", plan.page_ready_selector)
         await tab.select(plan.page_ready_selector, timeout=plan.selector_timeout_seconds)
 
-    for step in plan.buttons or []:
+    initial_steps = (plan.buttons or [])[: plan.prevalidate_steps]
+    for step in initial_steps:
         await resolve_button(tab, step, plan.selector_timeout_seconds)
 
     settle_seconds = plan.settle_delay_ms / 1000
@@ -217,7 +222,12 @@ async def prepare_page(browser: Any, plan: ClickPlan) -> Any:
         LOGGER.debug("Settling for %.3fs after selector validation.", settle_seconds)
         await asyncio.sleep(settle_seconds)
 
-    LOGGER.info("Page prepared at %s", timestamp_now())
+    LOGGER.info(
+        "Page prepared at %s. Prevalidated %d of %d steps.",
+        timestamp_now(),
+        len(initial_steps),
+        len(plan.buttons or []),
+    )
     return tab
 
 
@@ -242,7 +252,9 @@ async def run_click_plan(plan: ClickPlan, *, dry_run: bool) -> int:
         tab = await prepare_page(browser, plan)
 
         if dry_run:
-            LOGGER.info("Dry run complete. No clicks were executed.")
+            LOGGER.info(
+                "Dry run complete. No clicks were executed. Later steps will be resolved only after prior clicks during a live run."
+            )
             return 0
 
         await wait_for_fire_time(plan.run_at, plan.pre_fire_spin_ms)

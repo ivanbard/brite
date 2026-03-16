@@ -16,6 +16,7 @@ Copy [`timed_clicker.example.json`](./timed_clicker.example.json) and update:
 - `url`: page to preload
 - `profile_dir`: persistent Chrome profile directory to preserve login/session state
 - `page_ready_selector`: selector that proves the page is loaded
+- `prevalidate_steps`: number of leading button steps expected to exist before the fire time
 - `sandbox`: whether to let Chrome use its sandboxed startup path
 - `browser_executable_path`: optional explicit Chrome/Chromium executable path
 - `browser_args`: optional extra Chrome flags
@@ -45,7 +46,7 @@ python timed_clicker.py timed_clicker.example.json
 ## Behavior
 
 - The script waits until `run_at - warmup_seconds`, then launches the browser.
-- It opens the target page and validates all configured selectors before the fire time.
+- It opens the target page and validates only the first `prevalidate_steps` selectors before the fire time.
 - It re-queries each button immediately before clicking to reduce stale-element failures.
 - It uses a coarse sleep followed by a tight spin window before the target second.
 - If any selector cannot be resolved, the run fails before clicking.
@@ -54,6 +55,7 @@ python timed_clicker.py timed_clicker.example.json
 
 - Use a real Chrome/Chromium profile that is already logged in to the target site.
 - Start with `--dry-run` and a near-future timestamp to verify selectors and timing.
+- For multi-step flows where later buttons only appear after earlier clicks, leave `prevalidate_steps` at `1`.
 - If the page shows modals or overlays, add logic for those conditions before using the script in production.
 
 ## Windows startup troubleshooting
