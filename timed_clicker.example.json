@@ -8,6 +8,7 @@
   "pre_fire_spin_ms": 250,
   "page_ready_selector": "main",
   "prevalidate_steps": 1,
+  "keep_open_after_run": false,
   "headless": false,
   "sandbox": true,
   "browser_executable_path": "C:/Program Files/Google/Chrome/Application/chrome.exe",

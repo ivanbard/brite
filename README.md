@@ -17,6 +17,7 @@ Copy [`timed_clicker.example.json`](./timed_clicker.example.json) and update:
 - `profile_dir`: persistent Chrome profile directory to preserve login/session state
 - `page_ready_selector`: selector that proves the page is loaded
 - `prevalidate_steps`: number of leading button steps expected to exist before the fire time
+- `keep_open_after_run`: keep the browser open after a successful live run
 - `sandbox`: whether to let Chrome use its sandboxed startup path
 - `browser_executable_path`: optional explicit Chrome/Chromium executable path
 - `browser_args`: optional extra Chrome flags
@@ -50,6 +51,7 @@ python timed_clicker.py timed_clicker.example.json
 - It re-queries each button immediately before clicking to reduce stale-element failures.
 - It uses a coarse sleep followed by a tight spin window before the target second.
 - If any selector cannot be resolved, the run fails before clicking.
+- By default it closes the browser when the run ends; set `keep_open_after_run` to keep it open.
 
 ## Notes
 

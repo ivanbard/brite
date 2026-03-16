@@ -36,6 +36,7 @@ class ClickPlan:
     pre_fire_spin_ms: int = 250
     page_ready_selector: str | None = None
     prevalidate_steps: int = 1
+    keep_open_after_run: bool = False
     headless: bool = False
     sandbox: bool = True
     browser_executable_path: str | None = None
@@ -93,6 +94,7 @@ def load_config(path: Path) -> ClickPlan:
         pre_fire_spin_ms=int(raw.get("pre_fire_spin_ms", 250)),
         page_ready_selector=raw.get("page_ready_selector"),
         prevalidate_steps=int(raw.get("prevalidate_steps", 1)),
+        keep_open_after_run=bool(raw.get("keep_open_after_run", False)),
         headless=bool(raw.get("headless", False)),
         sandbox=bool(raw.get("sandbox", True)),
         browser_executable_path=raw.get("browser_executable_path"),
@@ -179,10 +181,22 @@ async def wait_for_fire_time(target: datetime, spin_window_ms: int) -> None:
 
 async def resolve_button(tab: Any, step: ButtonStep, timeout: float) -> Any:
     LOGGER.info("Resolving selector for step '%s': %s", step.name, step.selector)
-    button = await tab.select(step.selector, timeout=timeout)
-    if not button:
-        raise TimeoutError(f"Selector not found for step '{step.name}': {step.selector}")
-    return button
+    deadline = time.monotonic() + timeout
+
+    while True:
+        button = await tab.select(step.selector, timeout=0)
+        if button:
+            return button
+
+        frame_matches = await tab.select_all(step.selector, timeout=0, include_frames=True)
+        if frame_matches:
+            LOGGER.info("Resolved step '%s' inside a frame", step.name)
+            return frame_matches[0]
+
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"Selector not found for step '{step.name}': {step.selector}")
+
+        await tab.sleep(0.25)
 
 
 async def click_button(tab: Any, step: ButtonStep, timeout: float) -> None:
@@ -264,8 +278,11 @@ async def run_click_plan(plan: ClickPlan, *, dry_run: bool) -> int:
         LOGGER.info("Completed all clicks at %s", timestamp_now())
         return 0
     finally:
-        LOGGER.info("Stopping browser")
-        browser.stop()
+        if plan.keep_open_after_run:
+            LOGGER.info("Leaving browser open because keep_open_after_run=true")
+        else:
+            LOGGER.info("Stopping browser")
+            browser.stop()
 
 
 def timestamp_now() -> str:

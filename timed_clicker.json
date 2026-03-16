@@ -1,5 +1,5 @@
 {                                                                                                           
-"run_at": "2026-03-16T18:39:00",                                                                          
+"run_at": "2026-03-16T18:43:00",                                                                          
 "url":                                                                                                    
 "https://www.eventbrite.ca/e/evil-world-presents-bronclair-kay-nive-tickets-1983637251417?aff=eprofsaved",  
 "profile_dir": "./chrome-profile",                                                                        
@@ -23,7 +23,7 @@
     },                                                                                                      
     {                                                                                                       
     "name": "Confirm Modal",                                                                              
-    "selector": "button[data-testid='eds-modal_primary-button']"                                          
+    "selector": "button[data-testid='eds-modal__primary-button']"                                          
     }                                                                                                       
 ]                                                                                                         
 }
