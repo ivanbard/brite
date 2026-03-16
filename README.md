@@ -28,6 +28,7 @@ Each button entry supports:
 
 - `name`: log label
 - `selector`: CSS selector
+- `repeat`: number of times to click this same step before moving on
 - `timeout_seconds`: optional per-step wait budget for that button to appear
 - `poll_ms`: optional per-step DOM poll interval while waiting for that button
 - `click_retries`: optional number of times to retry the click if the first attempt fails

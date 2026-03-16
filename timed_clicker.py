@@ -23,6 +23,7 @@ class ButtonStep:
     name: str
     selector: str
     click_method: str = "click"
+    repeat: int = 1
     timeout_seconds: float | None = None
     poll_ms: int | None = None
     click_retries: int = 0
@@ -127,6 +128,7 @@ def parse_button_step(raw: dict[str, Any]) -> ButtonStep:
         name=raw.get("name") or selector,
         selector=selector,
         click_method=click_method,
+        repeat=int(raw.get("repeat", 1)),
         timeout_seconds=(
             float(raw["timeout_seconds"]) if raw.get("timeout_seconds") is not None else None
         ),
@@ -157,6 +159,8 @@ def validate_plan(plan: ClickPlan, *, dry_run: bool) -> None:
     for step in plan.buttons:
         if step.timeout_seconds is not None and step.timeout_seconds <= 0:
             raise ValueError(f"Step '{step.name}' timeout_seconds must be greater than 0.")
+        if step.repeat < 1:
+            raise ValueError(f"Step '{step.name}' repeat must be at least 1.")
         if step.poll_ms is not None and step.poll_ms < 1:
             raise ValueError(f"Step '{step.name}' poll_ms must be at least 1.")
         if step.click_retries < 0:
@@ -278,40 +282,43 @@ async def click_button(tab: Any, step: ButtonStep, timeout: float, poll_ms: int)
     step_timeout = step.timeout_seconds or timeout
     step_poll_ms = step.poll_ms or poll_ms
 
-    for attempt in range(step.click_retries + 1):
-        button = await resolve_button(tab, step, step_timeout, step_poll_ms)
-        action = getattr(button, step.click_method)
-        started_at = timestamp_now()
-        LOGGER.info(
-            "Clicking step '%s' with %s at %s (attempt %d/%d)",
-            step.name,
-            step.click_method,
-            started_at,
-            attempt + 1,
-            step.click_retries + 1,
-        )
-        try:
-            await action()
-            break
-        except Exception:
-            if attempt >= step.click_retries:
-                raise
-            retry_delay_seconds = step.retry_delay_ms / 1000
-            LOGGER.warning(
-                "Click failed for step '%s'; retrying in %.3fs",
+    for repeat_index in range(step.repeat):
+        for attempt in range(step.click_retries + 1):
+            button = await resolve_button(tab, step, step_timeout, step_poll_ms)
+            action = getattr(button, step.click_method)
+            started_at = timestamp_now()
+            LOGGER.info(
+                "Clicking step '%s' with %s at %s (repeat %d/%d, attempt %d/%d)",
                 step.name,
-                retry_delay_seconds,
+                step.click_method,
+                started_at,
+                repeat_index + 1,
+                step.repeat,
+                attempt + 1,
+                step.click_retries + 1,
             )
-            await asyncio.sleep(retry_delay_seconds)
+            try:
+                await action()
+                break
+            except Exception:
+                if attempt >= step.click_retries:
+                    raise
+                retry_delay_seconds = step.retry_delay_ms / 1000
+                LOGGER.warning(
+                    "Click failed for step '%s'; retrying in %.3fs",
+                    step.name,
+                    retry_delay_seconds,
+                )
+                await asyncio.sleep(retry_delay_seconds)
 
-    if step.post_click_delay_ms > 0:
-        delay_seconds = step.post_click_delay_ms / 1000
-        LOGGER.debug(
-            "Waiting %.3fs after step '%s' for page transition.",
-            delay_seconds,
-            step.name,
-        )
-        await asyncio.sleep(delay_seconds)
+        if step.post_click_delay_ms > 0:
+            delay_seconds = step.post_click_delay_ms / 1000
+            LOGGER.debug(
+                "Waiting %.3fs after step '%s' for page transition.",
+                delay_seconds,
+                step.name,
+            )
+            await asyncio.sleep(delay_seconds)
 
 
 async def prepare_page(browser: Any, plan: ClickPlan) -> Any:

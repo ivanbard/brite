@@ -18,6 +18,7 @@
     {
       "name": "Reserve Item",
       "selector": "button[data-testid='reserve-button']",
+      "repeat": 1,
       "timeout_seconds": 20,
       "poll_ms": 10,
       "require_visible": true,
@@ -28,6 +29,7 @@
     {
       "name": "Confirm",
       "selector": "button[data-testid='confirm-button']",
+      "repeat": 1,
       "timeout_seconds": 30,
       "poll_ms": 10,
       "click_retries": 1,
